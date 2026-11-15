@@ -1,0 +1,34 @@
+name: build-x606v
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ADT
+        run: |
+          cd tools
+          python3 mkadt.py x606v-phone.adt --phone
+          python3 mkadt.py x606v-qemu.adt --qemu
+          ls -la x606v-*.adt
+
+      - name: Build XNU kernel
+        run: |
+          cd xnu
+          make MACHINE_CONFIG=SWEET ARCH=arm64 2>&1 | tee build.log
+          ls -la kernel.release.arm64 2>/dev/null || ls -la *.release* 2>/dev/null || echo "check build.log"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x606v-build
+          path: |
+            tools/x606v-phone.adt
+            tools/x606v-qemu.adt
+            xnu/kernel.release.arm64
+            xnu/build.log   
